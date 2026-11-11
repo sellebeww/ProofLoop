@@ -300,3 +300,9 @@ select option{background:var(--surface);color:var(--text)}
 .auth-r p{font-size:16.5px}
 .proof{border:0;box-shadow:0 20px 50px rgba(23,43,58,.12)}
 @media (max-width:1024px){.auth{grid-template-columns:1fr}.auth-form{max-width:480px}}
+
+/* dropdown di dalam formulir: garis bawah tipis sebagai penanda (tetap tanpa kotak) */
+label.f select{border-bottom:1.5px solid var(--border-strong);border-radius:8px 8px 0 0}
+label.f select:hover,label.f select:focus-visible{border-bottom-color:var(--brand)}
+/* form catatan reviewer: wrap di ponsel supaya kolom teks tidak menyusut */
+@media (max-width:720px){form[data-form=note] .row{flex-wrap:wrap!important}form[data-form=note] select{max-width:none!important;flex:1 1 100%}form[data-form=note] input[name=text]{flex:1 1 60%;min-width:0}}
