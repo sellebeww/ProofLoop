@@ -1,0 +1,9 @@
+{
+  "name": "proofloop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ProofLoop: platform keberlanjutan organisasi",
+  "author": "Vassel Goleyu",
+  "license": "UNLICENSED",
+  "scripts": { "dev": "node dev-server.js", "start": "node dev-server.js" }
+}
