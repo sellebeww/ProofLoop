@@ -2,17 +2,16 @@
 // © 2026 Vassel Goleyu.
 import type { Attempt, Ctx, Process, State, Step } from '../domain/types.ts';
 import { STAGES, getProcess, isGuideEditable } from '../domain/workflow.ts';
+import { MAX_PHOTO_CHARS, PHOTO_RE } from '../domain/evidence.ts';
 import { guideToMarkdown, markdownToGuide, MAX_STEPS, MAX_TEXT, type GuideDoc, type ParseResult } from './markdown.ts';
 
 export const GUIDE_FORMAT = 'proofloop.guide';
 export const WORKSPACE_FORMAT = 'proofloop.workspace';
 export const FORMAT_VERSION = 1;
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_PHOTO_CHARS = 600_000;
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const VER_RE = /^\d{1,4}\.\d{1,4}$/;
-const PHOTO_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);

@@ -13,3 +13,4 @@ export {
   workspaceToJson, parseWorkspaceJson, adoptImport,
 } from './io/exchange.ts';
 export { diffSteps, diffText } from './domain/diff.ts';
+export { setStepEvidence, addComment, deleteComment, MAX_PHOTO_CHARS, MAX_EVIDENCE_TEXT } from './domain/evidence.ts';

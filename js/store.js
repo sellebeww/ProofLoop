@@ -23,7 +23,7 @@ window.PL = window.PL || {};
     belum: { t: 'Belum Berhasil', cls: 'err', ic: 'x-circle', d: 'Hasil belum memenuhi output atau standar kualitas kritis.' }
   };
 
-  const step = (title, o = {}) => ({ id: uid('st'), title, what: '', why: '', prepare: '', how: '', success: '', risk: '', fallback: '', critical: false, warning: '', example: '', checklist: '', decision: '', files: [], ...o });
+  const step = (title, o = {}) => ({ id: uid('st'), title, what: '', why: '', prepare: '', how: '', success: '', risk: '', fallback: '', critical: false, warning: '', example: '', checklist: '', decision: '', files: [], needsEvidence: false, ...o });
   PL.newStep = step;
   const qc = list => list.map(t => ({ id: uid('q'), text: t.replace(/^\(opsional\)\s*/, ''), mandatory: !/^\(opsional\)/.test(t) }));
 
