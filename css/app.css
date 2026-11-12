@@ -311,3 +311,17 @@ label.f select:hover,label.f select:focus-visible{border-bottom-color:var(--bran
 ins { background: color-mix(in srgb, var(--ok) 18%, transparent); text-decoration: underline; text-decoration-thickness: 2px; }
 del { background: color-mix(in srgb, var(--err) 14%, transparent); text-decoration: line-through; }
 .diffdd { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Aksesibilitas: kontras chip (>= 4.5:1) dan tautan dalam teks tidak hanya dibedakan lewat warna */
+:root:not([data-theme="dark"]) .chip{color:#4B5565}
+:root:not([data-theme="dark"]) .chip.ok{color:#166A43}
+:root:not([data-theme="dark"]) .chip.warn{color:#7A4F0D}
+:root:not([data-theme="dark"]) .chip.err{color:#9B2C2C}
+:root:not([data-theme="dark"]) .chip.info{color:#1451C2}
+p a:not([class]), .small a:not([class]), .muted a:not([class]), .auth a:not([class]), .auth-form a:not([class]) { text-decoration: underline; text-underline-offset: 2px; }
+.tw:focus-visible, .hsteps:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root:not([data-theme="dark"]) .nav a.on, :root:not([data-theme="dark"]) a[aria-current="page"]{color:var(--brand-dark)}
+:root:not([data-theme="dark"]) .conclusion .chip, :root:not([data-theme="dark"]) .conclusion .chip.ok{background:#166A43;color:#fff}
+:root:not([data-theme="dark"]) .conclusion.warn .chip, :root:not([data-theme="dark"]) .conclusion.warn .chip.warn{background:#7A4F0D;color:#fff}
+:root[data-theme="dark"] .seg button.on{background:var(--brand);color:#04122B}
+:root[data-theme="dark"] .conclusion .chip, :root[data-theme="dark"] .conclusion .chip.ok, :root[data-theme="dark"] .conclusion.warn .chip{color:#04140C}
