@@ -12,3 +12,4 @@ export {
   guideDocOf, guideToJson, guideToMarkdown, parseGuideFile, importGuideIntoDraft, createProcessFromGuideFile,
   workspaceToJson, parseWorkspaceJson, adoptImport,
 } from './io/exchange.ts';
+export { diffSteps, diffText } from './domain/diff.ts';
