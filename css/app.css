@@ -306,3 +306,8 @@ label.f select{border-bottom:1.5px solid var(--border-strong);border-radius:8px 
 label.f select:hover,label.f select:focus-visible{border-bottom-color:var(--brand)}
 /* form catatan reviewer: wrap di ponsel supaya kolom teks tidak menyusut */
 @media (max-width:720px){form[data-form=note] .row{flex-wrap:wrap!important}form[data-form=note] select{max-width:none!important;flex:1 1 100%}form[data-form=note] input[name=text]{flex:1 1 60%;min-width:0}}
+
+/* Diff antarversi: tidak mengandalkan warna saja (garis bawah / coret) */
+ins { background: color-mix(in srgb, var(--ok) 18%, transparent); text-decoration: underline; text-decoration-thickness: 2px; }
+del { background: color-mix(in srgb, var(--err) 14%, transparent); text-decoration: line-through; }
+.diffdd { white-space: pre-wrap; overflow-wrap: anywhere; }
