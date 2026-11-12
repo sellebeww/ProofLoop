@@ -107,7 +107,7 @@
     <div class="card mt flat small"><b>Ringkasan sesi:</b> ${a.doneSteps.length}/${n} langkah ditandai selesai · ${a.assist.length} catatan bantuan · ${a.issues.length} kendala dilaporkan.</div><div class="err-msg hide mt" id="xerr" role="alert"></div></div>${foot(html`<button class="btn" data-act="ex-nav" data-d="-1">${ic('arrow-left')} Sebelumnya</button>`, html`<span class="row"><button class="btn" data-act="ex-save">${ic('save')} Simpan Progres</button><button class="btn primary" data-act="ex-submit" data-id="${a.id}">${ic('send')} Kirim Hasil Praktik</button></span>`)}`, a);
   }, { auth: true });
   const cura = () => { const m = /#\/praktik\/([^/?]+)/.exec(location.hash); return m && PL.activeAttempt(PL.P(m[1])); };
-  PL.A['start-attempt'] = b => { PL.startAttempt(b.dataset.id); PL.toast('Praktik dimulai. Selamat bekerja!'); PL.rerender(); };
+  PL.A['start-attempt'] = b => { const a = PL.startAttempt(b.dataset.id); if (!a) { PL.toast((PL.lastErr || ['Praktik tidak dapat dimulai.']).join(' '), 'err'); return PL.rerender(); } PL.toast('Praktik dimulai. Selamat bekerja!'); PL.rerender(); };
   PL.I['ex-done'] = e => { const a = cura(), l = a.doneSteps; if (e.checked && !l.includes(e.dataset.sid)) l.push(e.dataset.sid); if (!e.checked) a.doneSteps = l.filter(x => x !== e.dataset.sid); PL.save(); PL.rerender(); };
   PL.I['ex-self'] = e => { cura().self[e.dataset.q] = e.checked; PL.save(); };
   PL.I['ex-sub'] = e => { const a = cura(); if (e.name === 'minutes') a.minutes = +e.value || 0; else a.submission[e.name] = e.value; PL.save(); };
@@ -118,12 +118,14 @@
   PL.A.issue = b => { const a = PL.S.attempts.find(x => x.id === b.dataset.id), ver = PL.G(a.pid).versions.find(v => v.v === a.guideVersion), steps = ver ? ver.steps : [], cur = steps[a.cursor] ? steps[a.cursor].id : '';
     PL.modal({ title: 'Apa kendala yang Anda temui?', body: html`<form class="col" id="isf" onsubmit="return false"><div class="col" style="gap:6px" role="radiogroup">${Object.keys(PL.ISSUE_KINDS).map((k, i) => html`<label class="check card flat" style="padding:9px 12px"><input type="radio" name="kind" value="${k}" ${i === 0 ? raw('checked') : ''}><span>${k}</span></label>`)}</div><label class="f">Langkah terkait<select name="step">${steps.map((s, i) => html`<option value="${s.id}" ${s.id === cur ? raw('selected') : ''}>${i + 1}. ${s.title}</option>`)}<option value="">Umum</option></select></label>${PL.field('Penjelasan singkat', 'text', { type: 'textarea', rows: 3, ph: 'Ceritakan bagian mana yang membingungkan.' })}<div class="err-msg hide" id="iserr"></div></form>`, actions: [{ label: 'Batal' }, { label: 'Kirim Laporan', cls: 'primary', fn: ov => { const d = PL.fd(ov.querySelector('#isf')); if (d.kind === 'Kendala lainnya' && !d.text.trim()) { const e = ov.querySelector('#iserr'); e.classList.remove('hide'); e.textContent = 'Mohon jelaskan kendalanya singkat saja.'; return false; } a.issues.push({ id: PL.uid('is'), step: d.step, kind: d.kind, text: d.text.trim(), at: new Date().toISOString() }); PL.save(); PL.toast('Kendala dicatat. Terima kasih, ini membantu memperbaiki panduan.'); setTimeout(PL.rerender, 0); } }] }); };
   PL.A['ex-submit'] = b => {
-    const a = PL.S.attempts.find(x => x.id === b.dataset.id), p = PL.P(a.pid), ver = PL.G(p.id).versions.find(v => v.v === a.guideVersion), e = PL.$('#xerr'), er = [];
-    const left = ver.steps.filter(s => !a.doneSteps.includes(s.id)); if (left.length) er.push(`Masih ada ${left.length} langkah yang belum ditandai selesai: ${left.map(s => s.title).join(', ')}.`);
-    if (!a.submission.files.length && !a.submission.link.trim() && !a.submission.text.trim()) er.push('Lampirkan minimal satu bukti hasil: berkas, tautan, atau penjelasan tertulis.');
-    if (a.submission.link.trim() && !/^https?:\/\/\S+/.test(a.submission.link.trim())) er.push('Tautan harus diawali http:// atau https://.');
+    const a = PL.S.attempts.find(x => x.id === b.dataset.id), e = PL.$('#xerr'), mins = () => Math.max(1, +a.minutes || Math.round((Date.now() - new Date(a.startedAt)) / 60000));
+    const er = PL.validateSubmission(a, a.submission, mins());
     if (er.length) { e.classList.remove('hide'); e.innerHTML = PL.ic('alert-circle').s + ' ' + er.map(esc).join(' '); PL.icons(); return; }
-    PL.confirm('Kirim hasil praktik?', 'Setelah dikirim, hasil akan ditinjau reviewer dan Anda tidak dapat mengubahnya.', () => { const mins = Math.max(1, +a.minutes || Math.round((Date.now() - new Date(a.startedAt)) / 60000)); PL.submitAttempt(a.id, { submission: a.submission, self: a.self, minutes: mins }); PL.toast('Praktik berhasil dikirim.'); setTimeout(PL.rerender, 0); }, { ok: 'Kirim Hasil Praktik' });
+    PL.confirm('Kirim hasil praktik?', 'Setelah dikirim, hasil akan ditinjau reviewer dan Anda tidak dapat mengubahnya.', () => {
+      const r = PL.submitAttempt(a.id, { submission: a.submission, self: a.self, minutes: mins() });
+      if (r.err) { PL.toast(r.err.join(' '), 'err'); return; }
+      PL.toast('Praktik berhasil dikirim.'); setTimeout(PL.rerender, 0);
+    }, { ok: 'Kirim Hasil Praktik' });
   };
 
   /* ---------- Review ---------- */
@@ -154,14 +156,8 @@
   PL.I['rv-f'] = e => { PL.rv[e.dataset.f] = e.value; }; PL.I['rv-n'] = e => { PL.rv.notes[e.dataset.f] = e.value; };
   PL.A['rv-done'] = () => {
     const r = PL.rv, a = curA(), p = PL.P(a.pid), e = PL.$('#rverr'), er = []; r.tried = true;
-    if (!p.quality.every(q => r.results[q.id])) er.push('Nilai semua kriteria kualitas.');
-    if (!r.outcome) er.push('Pilih klasifikasi hasil.');
-    if (!r.reason.trim()) er.push('Alasan klasifikasi wajib diisi.');
-    const fail = p.quality.some(q => q.mandatory && r.results[q.id] === 'revision'), help = a.assist.filter(x => x.provider && !r.dropped[x.id]).length;
-    if (r.outcome === 'mandiri' && fail) er.push('Hasil tidak dapat “Mandiri” karena ada kriteria wajib yang perlu revisi.');
-    if (r.outcome === 'mandiri' && help) er.push('Hasil tidak dapat “Mandiri” karena masih ada bantuan langsung yang tervalidasi. Koreksi catatan bantuan bila keliru.');
-    if (r.outcome === 'dengan_bantuan' && fail) er.push('Hasil tidak dapat “Dengan Bantuan” karena ada kriteria wajib yang belum terpenuhi. Pilih “Belum Berhasil”.');
+    er.push(...PL.validateReview(p, a, r));
     if (er.length) { e.classList.remove('hide'); e.innerHTML = PL.ic('alert-circle').s + ' ' + er.map(esc).join(' '); PL.icons(); e.scrollIntoView({ block: 'center' }); return; }
-    PL.confirm('Selesaikan evaluasi?', `Hasil akan ditetapkan sebagai “${PL.OUTCOME[r.outcome].t}”. ${r.outcome === 'mandiri' ? 'Proses akan terverifikasi.' : 'Pemegang pengetahuan akan diminta memperbaiki panduan.'}`, () => { PL.completeReview(a.id, { results: r.results, dropped: r.dropped, outcome: r.outcome, reason: r.reason.trim(), notes: r.notes }); PL.rv = null; PL.toast('Evaluasi diselesaikan.'); setTimeout(() => PL.go(p.stage === 'done' ? '#/hasil/' + p.id : '#/perbaikan/' + p.id), 0); }, { ok: 'Selesaikan Evaluasi' });
+    PL.confirm('Selesaikan evaluasi?', `Hasil akan ditetapkan sebagai “${PL.OUTCOME[r.outcome].t}”. ${r.outcome === 'mandiri' ? 'Proses akan terverifikasi.' : 'Pemegang pengetahuan akan diminta memperbaiki panduan.'}`, () => { const res = PL.completeReview(a.id, { results: r.results, dropped: r.dropped, outcome: r.outcome, reason: r.reason.trim(), notes: r.notes }); if (res.err) { PL.toast(res.err.join(' '), 'err'); return; } PL.rv = null; PL.toast('Evaluasi diselesaikan.'); setTimeout(() => PL.go(p.stage === 'done' ? '#/hasil/' + p.id : '#/perbaikan/' + p.id), 0); }, { ok: 'Selesaikan Evaluasi' });
   };
 })(window.PL);

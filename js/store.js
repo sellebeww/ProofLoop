@@ -9,15 +9,8 @@ window.PL = window.PL || {};
   PL.CATS = ['Komunikasi', 'Human Resources', 'Operasional', 'Administrasi', 'Keuangan'];
   PL.ROLES = ['Administrator', 'Pemegang Pengetahuan', 'Penerus', 'Reviewer'];
   PL.CAUSES = ['Instruksi tidak jelas', 'Langkah belum ada', 'File atau sumber daya belum tersedia', 'Aturan keputusan belum didokumentasikan', 'Penerus kurang konteks', 'Butuh pengetahuan praktik tambahan', 'Situasi tak terduga'];
-  PL.ISSUE_KINDS = {
-    'Instruksi tidak jelas': [0, 'Perjelas instruksi pada langkah ini dengan contoh konkret.'],
-    'Informasi belum tersedia': [2, 'Tambahkan informasi atau berkas yang dibutuhkan ke sumber daya langkah ini.'],
-    'Saya tidak memahami proses ini': [4, 'Tambahkan konteks: tujuan langkah dan kaitannya dengan hasil akhir.'],
-    'Langkah yang dijelaskan berbeda dari kondisi sebenarnya': [1, 'Perbarui langkah agar sesuai dengan kondisi sebenarnya di lapangan.'],
-    'Membutuhkan bantuan orang lain': [5, 'Dokumentasikan praktik yang saat ini hanya diketahui lewat bimbingan langsung.'],
-    'Kendala lainnya': [6, 'Tinjau kendala ini dan tambahkan panduan penanganannya.']
-  };
-  PL.ASSIST_TYPES = { 'Klarifikasi diminta': 0, 'Demonstrasi diperlukan': 5, 'Intervensi langsung diperlukan': 3, 'Masalah tak terduga': 6, 'Sumber daya kurang': 2 };
+  PL.ISSUE_KINDS = PLCore.ISSUE_KINDS;
+  PL.ASSIST_TYPES = PLCore.ASSIST_TYPES;
   PL.STATUS = {
     mandiri: { t: 'Mandiri', cls: 'ok', ic: 'check-circle-2' },
     test: { t: 'Dalam Pengujian', cls: 'info', ic: 'loader' },
@@ -181,14 +174,14 @@ window.PL = window.PL || {};
   PL.statusKey = p => p.stage === 'done' ? 'mandiri' : p.stage === 'improve' ? 'fix' : p.stage === 'draft' ? 'none' : 'test';
   PL.attemptsOf = pid => PL.S.attempts.filter(a => a.pid === pid).sort((a, b) => a.cycle - b.cycle);
   PL.activeAttempt = p => PL.S.attempts.find(a => a.pid === p.id && a.cycle === p.cycle && a.status !== 'reviewed');
-  PL.assistN = a => a.assist.filter(e => e.verified !== false && e.provider).length;
+  PL.assistN = a => PLCore.countedAssist(a).length;
   PL.gapsOf = pid => PL.S.gaps.filter(g => g.pid === pid);
   PL.openGaps = pid => PL.gapsOf(pid).filter(g => g.status !== 'Selesai' && !g.resolvedIn);
   PL.isActive = p => ['ready', 'progress', 'submitted', 'improve'].includes(p.stage);
   PL.tpos = p => p.stage === 'draft' ? 0 : p.stage === 'done' ? 8 : p.cycle === 1 ? ({ ready: 1, progress: 2, submitted: 4, improve: 6 })[p.stage] : 7;
   PL.TSTEPS = ['Panduan Terbit', 'Penerus Mengakses Panduan', 'Praktik Tugas', 'Hasil Terkirim', 'Review Selesai', 'Celah Teridentifikasi', 'Panduan Direvisi', 'Uji Keterulangan'];
   PL.stageLabel = p => ({ draft: 'Panduan belum terbit', ready: 'Siap dipraktikkan', progress: 'Praktik sedang berjalan', submitted: 'Menunggu review', improve: 'Perbaikan panduan', done: 'Terverifikasi' })[p.stage];
-  PL.nextVer = pid => { const v = PL.curVer(pid); if (!v) return '1.0'; const [a, b] = v.v.split('.').map(Number); return a + '.' + (b + 1); };
+  PL.nextVer = pid => PLCore.nextVersion(PL.S, pid);
   PL.metrics = () => {
     const P = PL.S.processes, c = k => P.filter(p => PL.statusKey(p) === k).length;
     return { total: P.length, active: P.filter(PL.isActive).length, mandiri: c('mandiri'), fix: c('fix'), test: c('test'), none: c('none') };
@@ -197,71 +190,37 @@ window.PL = window.PL || {};
   /* side effects */
   PL.notify = (to, type, title, body, route) => { if (!to) return; PL.S.notifications.unshift({ id: uid('n'), to, type, title, body, route, read: false, at: new Date().toISOString() }); };
   PL.log = (text, route) => { PL.S.activity.unshift({ id: uid('ac'), who: PL.S.session.user, text, route, at: new Date().toISOString() }); PL.S.activity = PL.S.activity.slice(0, 60); };
-  const touch = p => { p.updatedAt = new Date().toISOString(); };
   const clone = o => JSON.parse(JSON.stringify(o));
   PL.clone = clone;
 
-  PL.validateSteps = steps => {
-    const e = [];
-    if (!steps.length) e.push('Tambahkan minimal satu langkah panduan.');
-    steps.forEach((s, i) => { if (!s.title.trim()) e.push(`Langkah ${i + 1}: judul wajib diisi.`); if (!s.how.trim()) e.push(`Langkah ${i + 1}: cara melakukan langkah wajib diisi.`); if (!s.success.trim()) e.push(`Langkah ${i + 1}: gambaran hasil yang berhasil wajib diisi.`); });
-    return e;
-  };
+  /* Logika alur ada di modul inti TypeScript (src/domain/workflow.ts, dibundel sebagai PLCore).
+     Fungsi di bawah hanyalah adaptor: memasok pengguna sesi + waktu, lalu menyimpan. */
+  const ctx = { now: () => new Date().toISOString(), uid };
+  const actor = () => PL.S.session.user;
+  PL.validateSteps = PLCore.validateSteps;
+  PL.validateSubmission = (a, sub, minutes) => PLCore.validateSubmission(PL.S, a, sub, minutes);
+  PL.validateReview = PLCore.validateReview;
+  PL.suggestOutcome = PLCore.suggestOutcome;
   PL.publishGuide = (pid, summary) => {
-    const p = PL.P(pid), g = PL.G(pid);
-    if (!['draft', 'ready', 'improve'].includes(p.stage)) return { err: ['Panduan terkunci selama praktik atau peninjauan berlangsung.'] };
-    const errs = PL.validateSteps(g.draft);
-    if (!p.successorId) errs.push('Tetapkan penerus terlebih dahulu.');
-    if (!p.reviewerId) errs.push('Tetapkan reviewer terlebih dahulu.');
-    if (errs.length) return { err: errs };
-    const v = PL.nextVer(pid), me = PL.S.session.user, first = !g.versions.length;
-    const solved = PL.gapsOf(pid).filter(x => x.status === 'Selesai' && !x.resolvedIn);
-    solved.forEach(x => x.resolvedIn = v);
-    g.versions.push({ v, at: new Date().toISOString(), editor: me, summary: summary || (first ? 'Panduan awal.' : 'Pembaruan panduan.'), gapIds: solved.map(x => x.id), steps: clone(g.draft) });
-    if (p.stage === 'draft') { p.stage = 'ready'; p.cycle = 1; p.draft = false; PL.notify(p.successorId, 'assign', 'Penugasan baru', `Anda ditetapkan sebagai penerus untuk ${p.name}. Panduan v${v} siap digunakan.`, '#/transfer/' + pid); }
-    else if (p.stage === 'improve') { p.stage = 'ready'; p.cycle += 1; PL.notify(p.successorId, 'ready', `Cycle ${p.cycle} siap`, `Panduan ${p.name} versi ${v} telah diperbarui. Anda dapat mengulang praktik.`, '#/transfer/' + pid); }
-    else PL.notify(p.successorId, 'guide', 'Panduan diperbarui', `${p.name} kini versi ${v}.`, '#/transfer/' + pid);
-    touch(p); PL.log(`menerbitkan panduan ${p.name} versi ${v}`, '#/proses/' + pid); PL.save();
-    return { ok: true, v };
+    const r = PLCore.publishGuide(PL.S, ctx, actor(), pid, summary);
+    if (!r.ok) return { err: r.errors };
+    PL.save(); return { ok: true, v: r.version };
   };
   PL.startAttempt = pid => {
-    const p = PL.P(pid); let a = PL.activeAttempt(p);
-    if (a) return a;
-    if (p.stage !== 'ready') return null;
-    const ver = PL.curVer(pid);
-    a = { id: uid('at'), pid, cycle: p.cycle, guideVersion: ver.v, startedAt: new Date().toISOString(), submittedAt: null, doneSteps: [], cursor: -1, assist: [], issues: [], submission: { files: [], link: '', text: '' }, self: {}, minutes: 0, status: 'progress', outcome: null, review: null, notes: [] };
-    PL.S.attempts.push(a); p.stage = 'progress'; touch(p);
-    PL.notify(p.ownerId, 'guide', `Praktik Cycle ${p.cycle} dimulai`, `${PL.name(p.successorId)} mulai mempraktikkan ${p.name}.`, '#/transfer/' + pid);
-    PL.log(`memulai praktik Cycle ${p.cycle} untuk ${p.name}`, '#/transfer/' + pid); PL.save(); return a;
+    const r = PLCore.startAttempt(PL.S, ctx, actor(), pid);
+    if (!r.ok) { PL.lastErr = r.errors; return null; }
+    PL.save(); return r.attempt;
   };
+  /* submitAttempt dan completeReview mengembalikan { ok } atau { err: [...] } agar UI bisa menampilkan penolakan. */
   PL.submitAttempt = (aid, sub) => {
-    const a = PL.S.attempts.find(x => x.id === aid), p = PL.P(a.pid);
-    Object.assign(a, { submission: sub.submission, self: sub.self, minutes: sub.minutes, status: 'submitted', submittedAt: new Date().toISOString() });
-    p.stage = 'submitted'; touch(p);
-    PL.notify(p.reviewerId, 'review', 'Menunggu peninjauan', `${PL.name(p.successorId)} mengirim hasil Cycle ${a.cycle} untuk ${p.name}.`, '#/review/' + a.id);
-    PL.log(`mengirim hasil Cycle ${a.cycle} untuk ${p.name}`, '#/transfer/' + p.id); PL.save();
-  };
-  PL.suggestOutcome = (p, a, results, dropped = {}) => {
-    const fail = p.quality.filter(q => q.mandatory).some(q => results[q.id] === 'revision');
-    const help = a.assist.filter(e => e.verified !== false && e.provider && !dropped[e.id]).length;
-    return fail ? 'belum' : help ? 'dengan_bantuan' : 'mandiri';
+    const r = PLCore.submitAttempt(PL.S, ctx, actor(), aid, sub);
+    if (!r.ok) return { err: r.errors };
+    PL.save(); return { ok: true };
   };
   PL.completeReview = (aid, d) => {
-    const a = PL.S.attempts.find(x => x.id === aid), p = PL.P(a.pid);
-    a.assist.forEach(e => { if (d.dropped[e.id]) e.verified = false; });
-    a.review = { id: uid('rv'), reviewerId: PL.S.session.user, results: d.results, notes: d.notes, reason: d.reason, at: new Date().toISOString() };
-    a.status = 'reviewed'; a.outcome = d.outcome; if (d.minutes) a.minutes = d.minutes;
-    if (d.outcome !== 'mandiri') {
-      const add = (stepId, source, desc, evidence, cause, sug) => PL.S.gaps.push({ id: uid('g'), pid: p.id, attemptId: a.id, stepId, source, desc, evidence, cause, suggestion: sug, status: 'Baru', resolvedIn: null });
-      a.issues.forEach(i => { const k = PL.ISSUE_KINDS[i.kind] || PL.ISSUE_KINDS['Kendala lainnya']; add(i.step, 'issue', i.text || i.kind, 'Laporan kendala penerus: ' + i.kind, k[0], k[1]); });
-      a.assist.filter(e => e.verified !== false && e.provider).forEach(e => add(e.step, 'assist', e.text || e.type, 'Bantuan dicatat saat praktik: ' + e.type, PL.ASSIST_TYPES[e.type] ?? 0, 'Dokumentasikan bantuan yang diberikan sebagai instruksi tertulis pada langkah ini.'));
-      p.quality.filter(q => q.mandatory && d.results[q.id] === 'revision').forEach(q => add('', 'review', `Kriteria belum terpenuhi: ${q.text}`, 'Hasil evaluasi reviewer', 0, 'Perjelas hasil yang diharapkan dan cara memeriksanya pada langkah terkait.'));
-      p.stage = 'improve';
-    } else { p.stage = 'done'; p.completedAt = new Date().toISOString(); }
-    touch(p);
-    PL.notify(p.successorId, 'review', `Hasil Cycle ${a.cycle} telah ditinjau`, `${p.name}: ${PL.OUTCOME[d.outcome].t}.`, '#/hasil/' + p.id);
-    PL.notify(p.ownerId, 'review', 'Evaluasi selesai', d.outcome === 'mandiri' ? `${p.name} terverifikasi Mandiri.` : `${p.name} memerlukan perbaikan panduan.`, d.outcome === 'mandiri' ? '#/hasil/' + p.id : '#/perbaikan/' + p.id);
-    PL.log(`menyelesaikan evaluasi Cycle ${a.cycle} untuk ${p.name}`, '#/hasil/' + p.id); PL.save();
+    const r = PLCore.completeReview(PL.S, ctx, actor(), aid, d);
+    if (!r.ok) return { err: r.errors };
+    PL.save(); return { ok: true };
   };
 
   /* reports */
