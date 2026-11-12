@@ -22,7 +22,7 @@ export default tseslint.config(
   },
   {
     files: ['scripts/**/*.cjs'],
-    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser, PL: 'readonly' } },
+    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser, PL: 'readonly', PLCore: 'readonly' } },
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   // Server dev kecil bergaya CommonJS.
