@@ -112,6 +112,15 @@ Brief meminta memilih Next.js + Drizzle (SQLite/Postgres) atau Supabase berdasar
 - Tidak ada autentikasi sungguhan. Peran dijaga oleh modul inti, tetapi karena data di peramban, ini bukan kontrol keamanan.
 - Foto bukti disimpan di `localStorage` (diperkecil). Kuota peramban kecil; ekspor berkala dianjurkan.
 
-## Status
+## Status (akhir pengerjaan)
 
-Diperbarui di akhir pengerjaan; lihat deskripsi PR untuk bukti verifikasi dan daftar keputusan yang perlu dicek.
+| Item | Status |
+| --- | --- |
+| A. Audit, rapikan, test mesin status | Selesai. 66 kasus pada tabel transisi, transisi terlarang, penjagaan peran, validasi. |
+| B. Logika alur ke modul TS murni | Selesai (`src/domain`). `store.js` kini adaptor. Paritas laporan lama vs baru diperiksa pada data demo. |
+| C. Ekspor/impor JSON dan Markdown | Selesai, dengan validasi ketat dan test round-trip. Backend: **tidak diimplementasikan**; rekomendasi Supabase dan rancangan di `docs/BACKEND.md`. |
+| D. Skor keterpakaian, diff, bukti, komentar | Selesai. |
+| E. Asisten AI opsional | Selesai, diuji dengan klien tiruan saja. Belum pernah memanggil API sungguhan. |
+| F. A11y, 360 px, PWA, Vercel, CI, README | Selesai, kecuali deploy Vercel yang tidak dilakukan (tanpa akses akun). `vercel.json` dan fungsi `api/` belum terverifikasi di Vercel. |
+
+Penyimpangan dari rencana awal: bobot penilaian dan batas ukuran (foto, teks, berkas) adalah pilihan desain; font masih dari Google Fonts (ikon sudah lokal); `lucide` di-vendor dari npm sehingga versinya dipin oleh `package-lock.json`.
