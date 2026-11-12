@@ -8,3 +8,7 @@ export {
 } from './domain/workflow.ts';
 export { statusKey, isActive, portfolioMetrics, report } from './domain/metrics.ts';
 export { usabilityOf, scoreAttempt, WEIGHTS, OUTCOME_POINTS } from './domain/usability.ts';
+export {
+  guideDocOf, guideToJson, guideToMarkdown, parseGuideFile, importGuideIntoDraft, createProcessFromGuideFile,
+  workspaceToJson, parseWorkspaceJson, adoptImport,
+} from './io/exchange.ts';

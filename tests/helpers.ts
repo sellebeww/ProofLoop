@@ -15,7 +15,7 @@ export function makeCtx(): Ctx & { tick: () => void } {
 
 export const step = (title: string, o: Partial<Step> = {}): Step => ({
   id: 'st_' + title.replace(/\W+/g, '').toLowerCase(), title, what: '', why: '', prepare: '', how: 'Lakukan ' + title, success: 'Hasil ' + title,
-  risk: '', fallback: '', critical: false, warning: '', example: '', checklist: '', decision: '', files: [], ...o,
+  risk: '', fallback: '', critical: false, warning: '', example: '', checklist: '', decision: '', files: [], needsEvidence: false, ...o,
 });
 
 export function makeState(over: Partial<Process> = {}): State {
