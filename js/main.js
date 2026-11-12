@@ -6,4 +6,6 @@
   if (!location.hash) history.replaceState(null, '', '#/');
   PL.render();
   window.addEventListener('load', PL.icons);
+  // PWA: cangkang aplikasi offline. Hanya di https atau localhost (syarat peramban).
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })(window.PL);

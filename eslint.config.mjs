@@ -25,6 +25,7 @@ export default tseslint.config(
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser, PL: 'readonly', PLCore: 'readonly', axe: 'readonly' } },
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
+  { files: ['sw.js'], languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } } },
   // Server dev kecil bergaya CommonJS.
   {
     files: ['dev-server.js'],
