@@ -171,21 +171,19 @@ window.PL = window.PL || {};
   PL.me = () => PL.M(PL.S.session.user);
   PL.G = pid => PL.S.guides[pid] || (PL.S.guides[pid] = { draft: [], versions: [] });
   PL.curVer = pid => { const v = PL.G(pid).versions; return v.length ? v[v.length - 1] : null; };
-  PL.statusKey = p => p.stage === 'done' ? 'mandiri' : p.stage === 'improve' ? 'fix' : p.stage === 'draft' ? 'none' : 'test';
+  PL.statusKey = PLCore.statusKey;
   PL.attemptsOf = pid => PL.S.attempts.filter(a => a.pid === pid).sort((a, b) => a.cycle - b.cycle);
   PL.activeAttempt = p => PL.S.attempts.find(a => a.pid === p.id && a.cycle === p.cycle && a.status !== 'reviewed');
   PL.assistN = a => PLCore.countedAssist(a).length;
   PL.gapsOf = pid => PL.S.gaps.filter(g => g.pid === pid);
   PL.openGaps = pid => PL.gapsOf(pid).filter(g => g.status !== 'Selesai' && !g.resolvedIn);
-  PL.isActive = p => ['ready', 'progress', 'submitted', 'improve'].includes(p.stage);
+  PL.isActive = PLCore.isActive;
   PL.tpos = p => p.stage === 'draft' ? 0 : p.stage === 'done' ? 8 : p.cycle === 1 ? ({ ready: 1, progress: 2, submitted: 4, improve: 6 })[p.stage] : 7;
   PL.TSTEPS = ['Panduan Terbit', 'Penerus Mengakses Panduan', 'Praktik Tugas', 'Hasil Terkirim', 'Review Selesai', 'Celah Teridentifikasi', 'Panduan Direvisi', 'Uji Keterulangan'];
   PL.stageLabel = p => ({ draft: 'Panduan belum terbit', ready: 'Siap dipraktikkan', progress: 'Praktik sedang berjalan', submitted: 'Menunggu review', improve: 'Perbaikan panduan', done: 'Terverifikasi' })[p.stage];
   PL.nextVer = pid => PLCore.nextVersion(PL.S, pid);
-  PL.metrics = () => {
-    const P = PL.S.processes, c = k => P.filter(p => PL.statusKey(p) === k).length;
-    return { total: P.length, active: P.filter(PL.isActive).length, mandiri: c('mandiri'), fix: c('fix'), test: c('test'), none: c('none') };
-  };
+  PL.metrics = () => PLCore.portfolioMetrics(PL.S);
+  PL.usability = pid => PLCore.usabilityOf(PL.S, pid);
 
   /* side effects */
   PL.notify = (to, type, title, body, route) => { if (!to) return; PL.S.notifications.unshift({ id: uid('n'), to, type, title, body, route, read: false, at: new Date().toISOString() }); };
@@ -223,20 +221,7 @@ window.PL = window.PL || {};
     PL.save(); return { ok: true };
   };
 
-  /* reports */
-  PL.report = f => {
-    f = f || {};
-    const okP = p => (!f.cat || p.category === f.cat) && (!f.owner || p.ownerId === f.owner) && (!f.succ || p.successorId === f.succ) && (!f.status || PL.statusKey(p) === f.status);
-    const at = PL.S.attempts.filter(a => { const p = PL.P(a.pid); if (!p || a.status !== 'reviewed') return false; const d = new Date(a.review.at);
-      return (!f.from || d >= new Date(f.from)) && (!f.to || d <= new Date(f.to + 'T23:59:59')) && okP(p); });
-    const mandiri = at.filter(a => a.outcome === 'mandiri').length;
-    let crit = 0, critOk = 0;
-    at.forEach(a => { PL.P(a.pid).quality.filter(q => q.mandatory).forEach(q => { const r = a.review.results[q.id]; if (r && r !== 'na') { crit++; if (r === 'pass') critOk++; } }); });
-    const assistEv = at.flatMap(a => a.assist.filter(e => e.verified !== false && e.provider));
-    const byType = {}; assistEv.forEach(e => byType[e.type] = (byType[e.type] || 0) + 1);
-    const monthly = {}; at.forEach(a => { const d = new Date(a.submittedAt || a.review.at), k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); monthly[k] = (monthly[k] || 0) + 1; });
-    const ps = PL.S.processes.filter(okP);
-    return { at, procs: [...new Set(at.map(a => a.pid))], n: at.length, rate: at.length ? Math.round(mandiri / at.length * 100) : null, mandiri, assist: assistEv.length, byType, crit: crit ? Math.round(critOk / crit * 100) : null, critN: crit, done: ps.filter(p => p.stage === 'done').length, psN: ps.length, monthly, ps };
-  };
+  /* laporan: dihitung di inti (src/domain/metrics.ts) */
+  PL.report = f => PLCore.report(PL.S, f);
   window.addEventListener('beforeunload', PL.save);
 })(window.PL);
